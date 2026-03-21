@@ -1,0 +1,130 @@
+# Vue 3 Computed: Ngắn Gọn, Dễ Hiểu, Dùng Đúng
+
+## 1) Computed là gì?
+
+Computed là giá trị dẫn xuất từ state reactive (`ref`, `reactive`).
+Khác biệt quan trọng: computed có cơ chế cache, chỉ tính lại khi dependency thay đổi.
+
+Ví dụ gần với code của bạn:
+
+- `totalUSD` phụ thuộc `btcAmount`, `btcPrice`
+- `totalVND` phụ thuộc `totalUSD`, `usdToVnd`
+- `formattedTotal`, `formattedVND` chỉ lo format để hiển thị
+
+## 2) Vì sao nên dùng computed?
+
+- Tách rõ dữ liệu gốc và dữ liệu dẫn xuất.
+- Template sạch hơn vì không nhồi công thức dài vào HTML.
+- Tối ưu hiệu năng nhờ cache.
+- Dễ kiểm thử vì logic tính toán tập trung.
+
+## 3) Khi nào dùng computed, method, watch?
+
+Computed:
+
+- Dùng khi cần trả về dữ liệu để render.
+- Có cache theo dependency.
+- Nên là hàm thuần (không side effect).
+
+Method:
+
+- Dùng cho sự kiện người dùng (`@click`, `@submit`...).
+- Không cache; có thể chạy lại mỗi lần render.
+
+Watch:
+
+- Dùng khi cần side effect khi dữ liệu đổi.
+- Ví dụ: gọi API, lưu localStorage, thao tác DOM, log analytics.
+
+Quy tắc nhanh:
+
+- Hiển thị dữ liệu tính toán -> computed
+- Xử lý hành động -> method
+- Phản ứng phụ khi state đổi -> watch
+
+## 4) Ví dụ chuẩn theo BTC Calculator
+
+```js
+import { ref, computed } from 'vue'
+
+const btcAmount = ref(0.0050198)
+const btcPrice = ref(65000)
+const usdToVnd = ref(27000)
+
+const totalUSD = computed(() => btcAmount.value * btcPrice.value)
+const totalVND = computed(() => totalUSD.value * usdToVnd.value)
+
+const formattedTotal = computed(() =>
+  totalUSD.value.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  })
+)
+
+const formattedVND = computed(() =>
+  totalVND.value.toLocaleString('vi-VN') + ' ₫'
+)
+```
+
+Điểm tốt của cách làm này:
+
+- Tính toán theo tầng (pipeline) rõ ràng.
+- Mỗi computed có trách nhiệm duy nhất.
+- Dễ mở rộng thêm phí giao dịch, thuế, spread.
+
+## 5) Lưu ý với input số
+
+`v-model` có thể trả về chuỗi. Nên ép kiểu bằng `.number` để tránh lỗi toán học.
+
+```vue
+<input type="number" v-model.number="btcAmount" />
+<input type="number" v-model.number="btcPrice" />
+<input type="number" v-model.number="usdToVnd" />
+```
+
+Nếu không ép kiểu, một số trường hợp có thể dẫn đến `NaN` hoặc so sánh sai kiểu.
+
+## 6) Writable computed (nâng cao)
+
+Mặc định computed là readonly. Nếu cần hai chiều, dùng `get`/`set`.
+
+```js
+const firstName = ref('Phuoc')
+const lastName = ref('Nguyen')
+
+const fullName = computed({
+  get() {
+    return `${firstName.value} ${lastName.value}`
+  },
+  set(value) {
+    const parts = value.split(' ')
+    firstName.value = parts[0] || ''
+    lastName.value = parts.slice(1).join(' ') || ''
+  }
+})
+```
+
+Dùng khi thật sự cần map dữ liệu hai chiều; nếu không, giữ readonly sẽ an toàn hơn.
+
+## 7) Sai lầm phổ biến
+
+- Nhét side effect vào computed (gọi API, mutate DOM).
+- Viết computed quá dài, vừa tính toán vừa format vừa kiểm tra điều kiện phức tạp.
+- Không kiểm tra input rỗng hoặc giá trị không hợp lệ.
+- Dùng method thay computed cho giá trị hiển thị lặp lại nhiều nơi.
+
+## 8) Best practices
+
+- Đặt tên có nghĩa: `totalUSD`, `totalVND`, `formattedVND`.
+- Tách rõ: computed tính toán và computed format.
+- Giữ computed thuần: cùng input -> cùng output.
+- Nếu công thức lớn, tách helper function để test độc lập.
+- Ưu tiên nhiều computed nhỏ thay vì một computed khổng lồ.
+
+## 9) Checklist trước khi merge
+
+- Giá trị này có phải dữ liệu dẫn xuất không?
+- Computed có side effect không?
+- Dependency đã đủ chưa?
+- Input số đã dùng `v-model.number` chưa?
+- Có cần `readonly computed` hay `writable computed`?
