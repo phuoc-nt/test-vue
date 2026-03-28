@@ -14,6 +14,11 @@ const router = createRouter({
       name: 'computed',
       // lazy-load: chỉ tải khi người dùng truy cập trang này
       component: () => import('../views/Computed.vue'),
+    },
+    {
+      path: '/todo',
+      name: 'todo',
+      component: () => import('../views/Todo.vue'),
     }
   ],
 })
